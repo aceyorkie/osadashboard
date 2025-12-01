@@ -1,0 +1,243 @@
+ html, body {
+    margin: 0;
+    padding: 0;
+}
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 20px;
+    font-family: "Roboto", serif;
+    position: relative;
+    z-index: 1;
+}
+.nav-left .logo {
+    height: 40px;
+}
+.nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+}
+.nav-center a,
+.nav-right a {
+    color: rgb(0, 0, 0);
+    text-decoration: none;
+    margin: 0 15px;
+}
+.nav-right a:hover {
+    color: rgb(237, 194, 5);
+}
+.nav-center a:hover {
+    color: rgb(237, 194, 5);
+}
+        #membersContainer {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 40%;
+        }
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        th, td {
+            border-color: maroon;
+        }
+
+        /* Dashboard container */
+.dashboard-container {
+    width: 90%;
+    margin: 30px auto;
+    font-family: "Inter", sans-serif;
+    color: #222;
+}
+
+/* Analytics summary cards */
+.analytics-cards {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.analytics-card {
+    flex: 1;
+    background: linear-gradient(135deg, #bc0000, #f5d142);
+    color: white;
+    padding: 22px;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+    text-align: center;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.analytics-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 10px 22px rgba(0,0,0,0.2);
+}
+
+.analytics-card h3 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
+}
+
+.analytics-card p {
+    font-size: 30px;
+    font-weight: bold;
+    margin: 8px 0 0;
+}
+
+/* Organization grid layout */
+.org-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
+}
+
+/* Org card design */
+.org-card {
+    background: white;
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.org-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+/* Org header */
+.org-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.org-logo {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #eee;
+}
+
+.org-header h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: bold;
+    color: #bc0000;
+}
+
+.org-header span {
+    display: block;
+    font-size: 14px;
+    color: #777;
+}
+
+/* Description */
+.org-description {
+    font-size: 14px;
+    color: #444;
+    margin-bottom: 20px;
+    line-height: 1.4;
+}
+
+/* Buttons */
+.org-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.org-actions button {
+    flex: 1;
+    padding: 9px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    background-color: #bc0000;
+    color: white;
+    font-weight: 500;
+    transition: background-color 0.25s ease, transform 0.2s ease;
+}
+
+.org-actions button:hover {
+    background-color: #a00000;
+    transform: translateY(-1px);
+}
+
+/* Chart container */
+.chart-container {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+    margin-bottom: 30px;
+}
+
+.chart-container h2 {
+    font-family: "Inter", sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #bc0000;
+    letter-spacing: 0.3px;
+}
+
+footer {
+    background-color: maroon;
+    color: white;
+    margin-top: 200px;
+    padding: 50px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center; 
+    position: relative;
+    width: 95%;
+}
+
+.footer-left {
+    display: flex;
+    align-items: center; 
+}
+
+.footer-left p {
+    text-align: center;
+    font-family: "Montserrat", sans-serif;
+    font-size: 14px;
+    margin-left: 30px;
+    
+}
+
+.footer-right {
+    display: flex;
+    justify-content: flex-end;
+    gap: 30px;
+}
+
+.footer-right a {
+    text-decoration: none;
+    text-align: right;
+    font-family: "Montserrat", sans-serif;
+    color: white;
+}
+
+.footer-content .logo {
+    height: 40px;
+}

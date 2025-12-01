@@ -1,0 +1,108 @@
+* {
+    box-sizing: border-box;
+}
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; 
+}
+
+#membersContainer {
+    width: 100%;
+    padding: 20px 30px; 
+    margin: 70px auto;
+    overflow-x: auto; 
+}
+
+table {
+    border-collapse: collapse;
+    text-align: left;
+    font-family: "Montserrat", sans-serif;
+    font-size: 16px;
+    border: 1px solid maroon; 
+    border-radius: 15px; 
+    overflow: hidden; 
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    width: 100%;
+    max-width: 100%; 
+}
+
+th {
+    background-color: maroon;
+    color: white;
+    padding: 10px;
+    text-transform: uppercase;
+    border: none;
+}
+
+tr:nth-child(odd) {
+    background-color: white; 
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2; 
+}
+
+tr:hover {
+    background-color: #f2f2f2;
+}
+
+td {
+    border: none;
+    padding: 10px;
+}
+
+.orgname{
+    font-family: "Poppins", sans-serif;
+    font-weight: 600;
+    font-size: 60px;
+    margin-top: 90px;
+    background-image: linear-gradient(to right, #DACE4E 20%, #cb6428 50%, #BC0000 100%);
+    background-clip: text; 
+    color: transparent;
+    text-align: center;
+    margin-bottom: 30px;
+}
+.text{
+    font-family: "Poppins", sans-serif;
+    font-weight: 400;
+    color: black;
+    text-align: center;
+    margin-top: 0%;
+    margin-bottom: 90px;
+}
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    font-family: "Roboto", serif;
+    margin: 0;
+}
+
+.nav-left .logo {
+    height: 40px;
+}
+
+.nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+}
+
+.nav-center a,
+.nav-right a {
+    color: rgb(0, 0, 0);
+    text-decoration: none;
+    margin: 0 15px;
+}
+
+.nav-right a:hover {
+    color: yellow;
+}
+
+.nav-center a:hover {
+    color: yellow;
+}
