@@ -1,0 +1,366 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f5f5f5;
+    padding: 20px;
+}
+
+.main-content{
+    margin-left: var(--side-nav-width);
+    margin-top: var(--top-nav-height);
+    padding: 24px;
+}
+
+.osa-profile-card {
+    max-width: 1250px;
+    display: flex;
+    justify-content: space-between; /* pushes items to opposite sides */
+    align-items: center;
+    background: white;
+    padding: 15px 20px;
+    border-radius: 15px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+    font-family: 'Poppins', sans-serif;
+}
+
+.osa-info h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.osa-info p {
+    margin: 3px 0 0 0;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.page-container {
+    max-width: 1250px;
+    margin: 10px auto;
+    padding: 0 20px;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+    margin: 25px auto;
+    max-width: 1250px;
+}
+.card {
+    position: relative;
+    border-radius: 20px;
+    text-decoration: none !important;
+    background-color: #fff;
+    box-shadow: 0 4px 8px rgba(71,71,71,0.15);
+    height: 170px;
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;  /* text stays bottom-left */
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-10px);
+}
+
+/* Circle icon */
+.card-icon {
+    position: absolute;
+    top: 25px;
+    left: 25px;
+    width: 50px;
+    height: 50px;
+    background-color: #ddd;   /* light gray circle */
+    border-radius: 50%;
+}
+
+/* Big department code */
+.card h2 {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 900;
+    color: maroon;
+}
+
+/* Small description text */
+.card p {
+    margin: 5px 0 0 0;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    color: #333;
+    font-family: "Roboto", sans-serif;
+}
+
+.Greetings{
+    margin-top: 20px;
+    margin-bottom: 40px;
+    width: 550px;
+    position: relative;
+    z-index: 0;
+}
+.body-container {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 60vh;
+    position: relative;
+}
+
+.button {
+  width: 50px;
+  height: 50px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: maroon;
+  border-radius: 50%;
+  cursor: pointer;
+  transition-duration: .3s;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.13);
+  border: none;
+}
+
+.bell {
+  width: 18px;
+}
+
+.bell path {
+  fill: white;
+}
+
+.button:hover {
+  background-color: rgb(105, 104, 104);
+}
+
+.button:hover .bell {
+  animation: bellRing 0.9s both;
+}
+
+/* === Ranking Layout === */
+.ranking-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 30px;
+    margin-top: 40px;
+}
+
+/* === Ranking Card === */
+.ranking-card {
+    background: #ffffff;
+    border-radius: 22px;
+    padding: 22px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ranking-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 18px 35px rgba(0,0,0,0.12);
+}
+
+/* === Header === */
+.ranking-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.ranking-header h3 {
+    margin: 0;
+    font-size: 20px;
+    color: #800000;
+    font-weight: 700;
+}
+
+/* === Badge === */
+.badge {
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.academic-badge {
+    background: linear-gradient(135deg, #800000, #b30000);
+    color: #fff;
+}
+
+.nonacad-badge {
+    background: linear-gradient(135deg, #d4af37, #8b0000);
+    color: #fff;
+}
+
+/* === Table === */
+.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Roboto', sans-serif;
+}
+
+.ranking-table th {
+    text-align: left;
+    padding: 12px;
+    font-size: 13px;
+    text-transform: uppercase;
+    color: #777;
+    border-bottom: 2px solid #eee;
+}
+
+.ranking-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #f1f1f1;
+    font-size: 14px;
+}
+
+/* === Rank Column === */
+.rank {
+    font-weight: 800;
+    font-size: 16px;
+    color: #800000;
+}
+
+/* === Score === */
+.score {
+    font-weight: 800;
+    color: #b30000;
+}
+
+/* === Org Name Small Text === */
+.ranking-table small {
+    color: #777;
+    font-size: 12px;
+}
+
+/* === Row Hover === */
+.ranking-table tbody tr:hover {
+    background: #fafafa;
+}
+
+/* === Mobile === */
+@media (max-width: 600px) {
+    .ranking-header h3 {
+        font-size: 18px;
+    }
+
+    .ranking-table th,
+    .ranking-table td {
+        font-size: 12px;
+        padding: 10px;
+    }
+}
+
+
+/* bell ringing animation keyframes*/
+@keyframes bellRing {
+  0%,
+  100% {
+    transform-origin: top;
+  }
+
+  15% {
+    transform: rotateZ(10deg);
+  }
+
+  30% {
+    transform: rotateZ(-10deg);
+  }
+
+  45% {
+    transform: rotateZ(5deg);
+  }
+
+  60% {
+    transform: rotateZ(-5deg);
+  }
+
+  75% {
+    transform: rotateZ(2deg);
+  }
+}
+
+.button:active {
+  transform: scale(0.8);
+}
+
+.notif-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background-color: white;
+    color: maroon;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 3px 6px;
+    text-align: center;
+}
+
+.notif-dropdown {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    width: 320px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    max-height: 400px;
+    overflow-y: auto;
+    transition: all 0.2s ease-in-out;
+}
+
+.notif-header {
+    font-weight: bold;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    background-color: #f8f9fa;
+}
+
+.notif-list a {
+    display: block;
+    padding: 10px 12px;
+    text-decoration: none;
+    color: #333;
+    border-bottom: 1px solid #eee;
+}
+
+.notif-list a:hover {
+    background: #f1f1f1;
+}
+
+.notif-list small {
+    color: #999;
+}
+
+.list-group-item-warning {
+    background-color: #fff8e1;
+}
+
+@media (max-width: 768px) {
+
+    .main-content {
+        margin-left: 0;
+        margin-top: 0;
+    }
+}
+
+
+

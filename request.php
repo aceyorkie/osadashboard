@@ -34,26 +34,27 @@ if ($practice->connect_error) {
     die("Practice DB connection failed: " . $practice->connect_error);
 }
 
-$request_id = $_GET['request_id'] ?? null;
+$org_id = $_GET['org_id'] ?? null;
 
-if (!$request_id) {
-    die("Invalid access: missing request_id");
+if (!$org_id) {
+    die("Invalid access: missing org_id");
 }
 
-$getLatest = $practice->prepare("
-    SELECT request_id 
-    FROM document_files 
-    WHERE request_id = ?
+$getRequest = $practice->prepare("
+    SELECT request_id
+    FROM document_files
+    WHERE org_id = ?
+    ORDER BY request_id DESC
     LIMIT 1
 ");
-$getLatest->bind_param("i", $request_id);
-$getLatest->execute();
-$getLatest->bind_result($found);
-$getLatest->fetch();
-$getLatest->close();
+$getRequest->bind_param("i", $org_id);
+$getRequest->execute();
+$getRequest->bind_result($request_id);
+$getRequest->fetch();
+$getRequest->close();
 
-if (!$found) {
-    die("No accreditation files found for request_id " . htmlspecialchars($request_id));
+if (!$request_id) {
+    die("No documents found for this organization.");
 }
 
 $presQuery = $practice->prepare(" SELECT signatory_id, status FROM signature_flow WHERE request_id = ? AND role = 'President' LIMIT 1");
@@ -211,64 +212,67 @@ if ($vpResult && $vpResult['status'] === 'signed') {
   $org2->close();
 }
 
-$signatoryDb = new mysqli('localhost', 'root', '', 'practice_db');
-if ($signatoryDb->connect_error) {
-    die("Connection failed (signatureflow): " . $signatoryDb->connect_error);
-}
-
-$latestRequestSql = "SELECT request_id FROM signature_flow WHERE role = 'OSA' and signatory_id = '$id_no' ORDER BY id DESC LIMIT 1";
-$latestRequestResult = $signatoryDb->query($latestRequestSql);
-$latestRequestId = $latestRequestResult && $latestRequestResult->num_rows > 0
-    ? $latestRequestResult->fetch_assoc()['request_id']
-    : null;
-
 $orgDb = new mysqli('localhost', 'root', '', 'orgportal');
 if ($orgDb->connect_error) {
     die("Connection failed (orgportal): " . $orgDb->connect_error);
 }
 
-$orgCodeSql = "SELECT org_code FROM document_files WHERE request_id = '$latestRequestId' LIMIT 1";
-$orgCodeResult = $signatoryDb->query($orgCodeSql);
-$orgData = null;
+$orgQuery = $practice->prepare("
+    SELECT org_code, request_type, organization_type
+    FROM document_files
+    WHERE org_id = ?
+    LIMIT 1
+");
+$orgQuery->bind_param("i", $org_id);
+$orgQuery->execute();
+$orgInfo = $orgQuery->get_result()->fetch_assoc();
+$orgQuery->close();
 
-if ($orgCodeResult && $orgCodeResult->num_rows > 0) {
-    $orgCode = $orgCodeResult->fetch_assoc()['org_code'];
-}
-$docDetailsSql = "SELECT org_code, request_type, organization_type FROM document_files WHERE request_id = '$latestRequestId' LIMIT 1";
-$docDetailsResult = $signatoryDb->query($docDetailsSql);
-
-$orgCode = null;
-$requestType = null;
-$organizationType = null;
-
-if ($docDetailsResult && $docDetailsResult->num_rows > 0) {
-  $docDetails = $docDetailsResult->fetch_assoc();
-  $orgCode = $docDetails['org_code'];
-  $requestType = $docDetails['request_type'];
-  $organizationType = $docDetails['organization_type'];
-}
+$orgCode          = $orgInfo['org_code'] ?? null;
+$requestType      = $orgInfo['request_type'] ?? null;
+$organizationType = $orgInfo['organization_type'] ?? null;
 
 $orgData = null;
+
 if ($orgCode) {
-    $orgDetailsSql = "SELECT org_name, org_code, org_description, org_course, org_logo FROM dtp_organization WHERE org_code = ?";
-    $stmt = $orgDb->prepare($orgDetailsSql);
+
+  if ($organizationType === 'Academic') {
+
+    // Academic org → dtp_organization
+    $stmt = $orgDb->prepare("
+        SELECT org_name, org_code, org_description, org_course, org_logo
+        FROM dtp_organization
+        WHERE org_code = ?
+        LIMIT 1
+    ");
     $stmt->bind_param("s", $orgCode);
+
+  } elseif ($organizationType === "Non-Academic"){
+
+      // Non-academic org → nonacad_organization
+      $stmt = $orgDb->prepare("
+          SELECT org_name, org_code, org_description, org_logo
+          FROM nonacad_organization
+          WHERE org_code = ?
+          LIMIT 1
+      ");
+      $stmt->bind_param("s", $orgCode);
+  } elseif ($organizationType === "Department") {
+    $stmt = $orgDb->prepare("
+        SELECT dept_name AS org_name, dept_code AS org_code, 
+               dept_description AS org_description, dept_logo AS org_logo 
+        FROM department 
+        WHERE dept_code = ?
+    ");
+    $stmt->bind_param("s", $orgCode);
+  }
+
     $stmt->execute();
     $result = $stmt->get_result();
-
-    if ($result && $result->num_rows > 0) {
-        $orgData = $result->fetch_assoc();
-    } else {
-        $orgDetailsSql = "SELECT org_name, org_code, org_description, org_logo FROM nonacad_organization WHERE org_code = ?";
-        $stmt = $orgDb->prepare($orgDetailsSql);
-        $stmt->bind_param("s", $orgCode);
-        $stmt->execute();
-        $result = $stmt->get_result();
 
         if ($result && $result->num_rows > 0) {
             $orgData = $result->fetch_assoc();
         }
-    }
 
     $stmt->close();
 }
@@ -277,7 +281,6 @@ $orgDb = new mysqli('localhost', 'root', '', 'orgportal');
 if ($orgDb->connect_error) {
     die("Connection failed (orgportal): " . $orgDb->connect_error);
 }
-
 $orgQuery = $practice->prepare("
     SELECT DISTINCT org_code, request_type, organization_type
     FROM document_files 
@@ -293,34 +296,43 @@ $org_code = $orgInfo['org_code'] ?? null;
 $requestType = $orgInfo['request_type'] ?? null;       
 $organizationType = $orgInfo['organization_type'] ?? null;  
 
-$programHeadName = "";
-$programHeadID   = "";
+$phQuery = $practice->prepare("
+    SELECT signatory_id, status
+    FROM signature_flow
+    WHERE request_id = ?
+      AND role = 'Program Head'
+    LIMIT 1
+");
+$phQuery->bind_param("i", $request_id);
+$phQuery->execute();
+$phResult = $phQuery->get_result()->fetch_assoc();
+$phQuery->close();
 
-if ($organizationType === "Academic") {
+$programheadSigned = false;
+$programheadSignedName = "";
+$programheadSignedID = "";
+$programheadSignedSignature = "";
 
-    $phQuery = $practice->prepare("
-        SELECT signatory_id 
-        FROM signature_flow 
-        WHERE request_id = ? AND role = 'Program Head'
+if ($phResult && $phResult['status'] === 'signed') {
+
+    $programheadSigned = true;
+    $programheadSignedID = $phResult['signatory_id'];
+
+    // ✅ FETCH FROM ADVISER TABLE (CORRECT)
+    $phStmt = $osaDb->prepare("
+        SELECT name, signature
+        FROM adviser
+        WHERE id_no = ?
         LIMIT 1
     ");
-    $phQuery->bind_param("i", $request_id);
-    $phQuery->execute();
-    $phQuery->bind_result($ph_id);
-    $phQuery->fetch();
-    $phQuery->close();
+    $phStmt->bind_param("i", $programheadSignedID);
+    $phStmt->execute();
+    $phData = $phStmt->get_result()->fetch_assoc();
+    $phStmt->close();
 
-    if (!empty($ph_id)) {
-        $phStmt = $orgDb->prepare("SELECT name FROM programhead WHERE id_no = ?");
-        $phStmt->bind_param("i", $ph_id);
-        $phStmt->execute();
-        $phStmt->bind_result($name);
-
-        if ($phStmt->fetch()) {
-            $programHeadName = $name;
-            $programHeadID   = $ph_id;
-        }
-        $phStmt->close();
+    if ($phData) {
+        $programheadSignedName = $phData['name'];
+        $programheadSignedSignature = $phData['signature'];
     }
 }
 $orgDb->close();
@@ -374,12 +386,13 @@ $orgDb->close();
     </nav>
 
     <div class="main-container">
+      <h2 class="title-request"><?php echo $orgData['org_name'] ?? ''; ?> <?php echo $requestType ?? ''; ?></h2>
 
-        <input type="hidden" id="request_id" value="<?php echo $latestRequestId; ?>">
-
+      <div class="Documents-box">
+        <input type="hidden" id="request_id" value="<?php echo $request_id; ?>">
 
         <form method="POST" action="submit_drawn_documents.php" enctype="multipart/form-data" id="adviserForm">
-            <input type="hidden" name="request_id" id="form_request_id" value="<?php echo $latestRequestId; ?>">
+            <input type="hidden" name="request_id" id="form_request_id" value="<?php echo $requestType; ?>">
             <input type="hidden" name="role" value="Adviser">
             <div class="org-details-flex">
               <div class="org-logo-upload">
@@ -408,15 +421,11 @@ $orgDb->close();
               </div>
             </div>
 
-
-            <button type="button" id="submitBtn">Submit Documents</button>
-            <button type="button" id="rejectBtn" style="background:#e74c3c;color:#fff;">Reject Documents</button>
-
             <div class="select-approvers-wrapper">
               <h4 style="font-family:Poppins;margin:10px 0;">Select Signatories</h4>
               <div class="select-approvers">
                 <!-- president -->
-                <div class="signatory-box">
+                <div class="signatory-card">
                   <div class="signature-placeholder" id="president-signature-box" onclick="<?= $presidentSigned ? '' : "triggerFileInput('president')" ?>">
                     <?php if ($presidentSigned && !empty($presidentSignedSignature)): ?>
                       <!-- SHOW SIGNED PRESIDENT SIGNATURE -->
@@ -431,14 +440,15 @@ $orgDb->close();
                       <input type="file" id="president_file" accept="image/*" style="display:none" onchange="previewSignature(this, 'president')" <?= $presidentSigned ? 'disabled' : '' ?>>
                   </div>
 
-                  <div class="input-group">
+                  <div class="sign-info" style="width:100%;">
                     <input list="presidentList" id="president_name" name="president_name" placeholder="Select President"autocomplete="off" value="<?= $presidentSigned ? htmlspecialchars($presidentSignedName) : ($officerRole === 'President' ? htmlspecialchars($officerName) : '') ?>" <?= ($presidentSigned || $officerRole === 'President') ? 'readonly' : '' ?>>
                     <input type="hidden" id="president_id"name="president_id" value="<? $presidentSigned ? htmlspecialchars($presidentSignedID) : ($officerRole === 'President' ? htmlspecialchars($student_id) : '') ?>">
                     <datalist id="presidentList"></datalist>
+                    <div class="role">President</div>
                   </div>
                 </div>
                 <!-- adviser -->
-                <div class="signatory-box">
+                <div class="signatory-card">
                   <div class="signature-placeholder" id="adviser-signature-box" onclick="<?= $adviserSigned ? '' : "triggerFileInput('adviser')" ?>">
                     <?php if ($adviserSigned && !empty($adviserSignedSignature)): ?>
                       <!-- SHOW SIGNED ADVISER SIGNATURE -->
@@ -453,36 +463,34 @@ $orgDb->close();
                       <input type="file" id="adviser_file" accept="image/*" style="display:none"onchange="previewSignature(this, 'adviser')" <?= $adviserSigned ? 'disabled' : '' ?>>
                   </div>
 
-                  <div class="input-group">
+                  <div class="sign-info" style="width:100%;">
                     <input list="adviserList" id="adviser_name" name="adviser_name" placeholder="Select Adviser"autocomplete="off" value="<?= $adviserSigned ? htmlspecialchars($adviserSignedName) : htmlspecialchars($adviser['name'] ?? '') ?>" readonly>
                     <input type="hidden" id="adviser_id" name="adviser_id" value="<?= $adviserSigned ? htmlspecialchars($adviserSignedID) : htmlspecialchars($adviser['id_no'] ?? '') ?>">
                     <datalist id="adviserList"></datalist>
+                    <div class="role">Adviser</div>
                   </div>
                 </div>
-                  <!-- program head -->
-                <div class="signatory-box">
-                  <div class="signature-placeholder" id="programhead-signature-box" onclick="<?= $programheadSigned ? '' : "triggerFileInput('programhead')" ?>">
+                <!-- program head -->
+                <div class="signatory-card">
+                  <div class="signature-placeholder">
                     <?php if ($programheadSigned && !empty($programheadSignedSignature)): ?>
-                      <!-- SHOW SIGNED ADVISER SIGNATURE -->
-                      <img src="<?= htmlspecialchars($programheadSignedSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
-                  
-                      <?php elseif (!empty($programheadSignature)): ?>
-                      <img src="<?= htmlspecialchars($programheadSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
-
-                      <?php else: ?>
-                        <span>+</span>
-                      <?php endif; ?>
-                      <input type="file" id="programhead_file" accept="image/*" style="display:none"onchange="previewSignature(this, 'programhead')" <?= $programheadSigned ? 'disabled' : '' ?>>
+                      <img src="<?= htmlspecialchars($programheadSignedSignature) ?>">
+                    <?php else: ?>
+                      <span>Pending</span>
+                    <?php endif; ?>
                   </div>
 
-                  <div class="input-group">
-                    <input list="programheadList" id="programhead_name" name="programhead_name" placeholder="Select Program Head"autocomplete="off" value="<?= $programheadSigned ? htmlspecialchars($programheadSignedName) : htmlspecialchars($programhead['name'] ?? '') ?>" readonly>
-                    <input type="hidden" id="programhead_id" name="programhead_id" value="<?= $programheadSigned ? htmlspecialchars($programheadSignedID) : htmlspecialchars($programhead['id_no'] ?? '') ?>">
-                    <datalist id="programheadList"></datalist>
+                  <div class="sign-info" style="width:100%;">
+                    <input type="text"
+                          value="<?= htmlspecialchars($programheadSignedName ?: 'Program Head') ?>"
+                          readonly>
+                    <input type="hidden"
+                          value="<?= htmlspecialchars($programheadSignedID) ?>">
+                          <div class="role">Program Head</div>
                   </div>
                 </div>
                 <!-- dean -->
-                <div class="signatory-box">
+                <div class="signatory-card">
                   <div class="signature-placeholder" id="dean-signature-box" onclick="<?= $deanSigned ? '' : "triggerFileInput('dean')" ?>">
                     <?php if ($deanSigned && !empty($deanSignedSignature)): ?>
                       <!-- SHOW SIGNED ADVISER SIGNATURE -->
@@ -497,14 +505,15 @@ $orgDb->close();
                       <input type="file" id="dean_file" accept="image/*" style="display:none"onchange="previewSignature(this, 'dean')" <?= $deanSigned ? 'disabled' : '' ?>>
                   </div>
 
-                  <div class="input-group">
+                  <div class="sign-info" style="width:100%;">
                     <input list="deanList" id="dean_name" name="dean_name" placeholder="Select Dean"autocomplete="off" value="<?= $deanSigned ? htmlspecialchars($deanSignedName) : htmlspecialchars($dean['name'] ?? '') ?>" readonly>
                     <input type="hidden" id="dean_id" name="dean_id" value="<?= $deanSigned ? htmlspecialchars($deanSignedID) : htmlspecialchars($dean['id_no'] ?? '') ?>">
                     <datalist id="deanList"></datalist>
+                    <div class="role">Dean</div>
                   </div>
                 </div>
                 <!-- vp -->
-                <div class="signatory-box">
+                <div class="signatory-card">
                   <div class="signature-placeholder" id="vp-signature-box" onclick="<?= $vpSigned ? '' : "triggerFileInput('vp')" ?>">
                     <?php if ($vpSigned && !empty($vpSignedSignature)): ?>
                       <img src="<?= htmlspecialchars($vpSignedSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
@@ -517,14 +526,15 @@ $orgDb->close();
                       <?php endif; ?>
                       <input type="file" id="vp_file" accept="image/*" style="display:none"onchange="previewSignature(this, 'vp')" <?= $vpSigned ? 'disabled' : '' ?>>
                   </div>
-                  <div class="input-group">
+                  <div class="sign-info" style="width:100%;">
                     <input list="vpList" id="vp_name" name="vp_name" placeholder="Select VP"autocomplete="off" value="<?= $vpSigned ? htmlspecialchars($vpSignedName) : htmlspecialchars($vp['name'] ?? '') ?>" readonly>
                     <input type="hidden" id="vp_id" name="vp_id" value="<?= $vpSigned ? htmlspecialchars($vpSignedID) : htmlspecialchars($vp['id_no'] ?? '') ?>">
                     <datalist id="vpList"></datalist>
+                    <div class="role">Branch Director</div>
                   </div>
                 </div>
                 <!-- osa -->
-                <div class="signatory-box">
+                <div class="signatory-card">
                   <div class="signature-placeholder" id="osa-signature-box" onclick="triggerFileInput('osa')">
                     <?php if (!empty($osa['signature'])): ?>
                       <img src="<?php echo htmlspecialchars($osa['signature']); ?>" alt="Signature" style="width:100px; height:auto; display:block; margin:auto;">
@@ -533,7 +543,7 @@ $orgDb->close();
                     <?php endif; ?>
                     <input type="file" id="osa_file" accept="image/*" style="display:none" onchange="previewSignature(this, 'osa')">
                   </div>
-                  <div class="input-group">
+                  <div class="sign-info" style="width:100%;">
                     <input type="text" 
                           id="osa_name" 
                           name="osa_name" 
@@ -546,11 +556,17 @@ $orgDb->close();
                           name="osa_id" 
                           value="<?php echo htmlspecialchars($osa['id_no']); ?>">
                     <datalist id="osaList"></datalist>
+                    <div class="role">OSA</div>
                   </div>
                 </div>
               </div>
             </div>
+          <div class="button-row">
+            <button type="button" id="submitBtn" class="btn primary">Approve & Sign Documents</button>
+            <button type="button" id="rejectBtn" class="btn primary" style="background:#e74c3c;color:#fff;">Reject Documents</button>
+          </div>
         </form>
+      </div>
     </div>
 
     <div id="signatureModal" class="modal">
@@ -878,5 +894,3 @@ $orgDb->close();
   </script>
 </body>
 </html>
-
-<?php $signatoryDb->close(); ?>

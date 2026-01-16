@@ -316,45 +316,25 @@ input{
     color: #ffffff;
 }
 
-footer {
-    background-color: maroon;
-    color: white;
-    margin-top: 200px;
-    padding: 50px;
+.charts-row {
     display: flex;
+    gap: 25px;
+    margin-top: 40px;
     justify-content: space-between;
-    align-items: center; 
-    position: relative;
-    width: 95%;
+    flex-wrap: wrap;
 }
 
-.footer-left {
-    display: flex;
-    align-items: center; 
+.chart-box {
+    flex: 1;
+    min-width: 450px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 14px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 
-.footer-left p {
-    text-align: center;
-    font-family: "Montserrat", sans-serif;
-    font-size: 14px;
-    margin-left: 30px;
-    
-}
-
-.footer-right {
-    display: flex;
-    justify-content: flex-end;
-    gap: 30px;
-}
-
-.footer-right a {
-    text-decoration: none;
-    text-align: right;
-    font-family: "Montserrat", sans-serif;
-    color: white;
-}
-
-.footer-content .logo {
-    height: 40px;
+.chart-box canvas {
+    width: 100% !important;
+    height: 350px !important;
 }
 

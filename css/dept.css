@@ -1,59 +1,46 @@
- html, body {
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html, body {
     margin: 0;
     padding: 0;
 }
-nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 20px;
-    font-family: "Roboto", serif;
-    position: relative;
-    z-index: 1;
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f5f5f5;
+    padding: 20px;
 }
-.nav-left .logo {
-    height: 40px;
+
+.main-content{
+    margin-left: var(--side-nav-width);
+    margin-top: var(--top-nav-height);
+    padding: 24px;
 }
-.nav-center {
-    position: absolute;
+
+#membersContainer {
+    position: fixed;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    justify-content: center;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    width: 40%;
 }
-.nav-center a,
-.nav-right a {
-    color: rgb(0, 0, 0);
-    text-decoration: none;
-    margin: 0 15px;
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+    text-align: left;
 }
-.nav-right a:hover {
-    color: rgb(237, 194, 5);
+th, td {
+    border-color: maroon;
 }
-.nav-center a:hover {
-    color: rgb(237, 194, 5);
-}
-        #membersContainer {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            width: 40%;
-        }
-        table, th, td {
-            border: 1px solid black;
-            border-collapse: collapse;
-            text-align: left;
-        }
-        th, td {
-            border-color: maroon;
-        }
 
         /* Dashboard container */
 .dashboard-container {
@@ -73,7 +60,7 @@ nav {
 
 .analytics-card {
     flex: 1;
-    background: linear-gradient(135deg, #bc0000, #f5d142);
+    background: maroon;
     color: white;
     padding: 22px;
     border-radius: 16px;
@@ -200,44 +187,37 @@ nav {
     letter-spacing: 0.3px;
 }
 
-footer {
-    background-color: maroon;
-    color: white;
-    margin-top: 200px;
-    padding: 50px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center; 
-    position: relative;
+/* === ANALYTICS PANEL STYLES === */
+
+.analytics-panel {
+    display: none;
+    margin-top: 40px;
+    background: #fff;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     width: 95%;
+    max-width: 1300px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.footer-left {
-    display: flex;
-    align-items: center; 
+.analytics-title {
+    font-family: "Roboto", sans-serif;
+    font-size: 24px;
+    margin-bottom: 20px;
 }
 
-.footer-left p {
-    text-align: center;
-    font-family: "Montserrat", sans-serif;
-    font-size: 14px;
-    margin-left: 30px;
-    
+.analytics-chart-wrapper {
+    width: 100%;
+    height: 380px; /* Bigger height like your sample */
 }
 
-.footer-right {
-    display: flex;
-    justify-content: flex-end;
-    gap: 30px;
-}
-
-.footer-right a {
-    text-decoration: none;
-    text-align: right;
-    font-family: "Montserrat", sans-serif;
-    color: white;
-}
-
-.footer-content .logo {
-    height: 40px;
+.analytics-summary {
+    margin-top: 25px;
+    background: #fafafa;
+    border-radius: 15px;
+    padding: 20px;
+    font-family: "Roboto", sans-serif;
+    font-size: 16px;
 }

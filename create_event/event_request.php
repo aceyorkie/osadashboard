@@ -133,7 +133,7 @@ if ($phResult && $phResult['status'] === 'signed') {
   $programheadID = $phResult['signatory_id'];
 
   $org2 = new mysqli("localhost", "root", "", "orgportal");
-  $getPh = $org2->prepare("SELECT name, signature FROM programhead WHERE id_no = ?");
+  $getPh = $org2->prepare("SELECT name, signature FROM adviser WHERE id_no = ?");
   $getPh->bind_param("i", $programheadID);
   $getPh->execute();
   $fetchPh = $getPh->get_result()->fetch_assoc();
@@ -235,7 +235,7 @@ if (!empty($organizationType)) {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Adviser Signatory Dashboard</title>
+    <title>Signatory Dashboard</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -261,6 +261,29 @@ if (!empty($organizationType)) {
     margin-bottom: 20px;
     max-width: 100%;
   }
+
+  .toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #2ecc71;
+    color: #fff;
+    padding: 14px 20px;
+    border-radius: 8px;
+    font-family: Poppins, sans-serif;
+    font-size: 14px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 9999;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
 </style>
 
 <body>
@@ -280,169 +303,199 @@ if (!empty($organizationType)) {
   </nav>
 
   <div class="main-container">
-    <h2>Welcome OSA: <?php echo htmlspecialchars($osa['name']); ?></h2>
+    <h2 class="title-request">Event Request — <?php echo htmlspecialchars($eventDetails['event_name'] ?: 'Preview'); ?></h2>
 
-    <input type="hidden" id="request_id" value="<?php echo htmlspecialchars($request_id); ?>">
-    <input type="hidden" id="event_id" value="<?php echo htmlspecialchars($event_id); ?>">
-
-    <form method="POST" action="submit_event_drawn_documents.php" enctype="multipart/form-data" id="adviserForm">
-      <input type="hidden" name="request_id" id="form_request_id" value="<?php echo htmlspecialchars($request_id); ?>">
-      <input type="hidden" name="event_id" value="<?php echo htmlspecialchars($event_id); ?>">
+    <div class="Documents-box">
+      <input type="hidden" id="request_id" value="<?php echo htmlspecialchars($request_id); ?>">
+      <input type="hidden" id="event_id" value="<?php echo htmlspecialchars($event_id); ?>">
       <input type="hidden" name="role" value="OSA">
-      <div class="org-details-flex">
-        <div class="org-fields">
-          <input type="text" name="event_name" placeholder="Event Name" value="<?php echo htmlspecialchars(strtoupper($eventDetails['event_name'])); ?>" readonly>
-          <input type="text" name="event_location" placeholder="Event Location" value="<?php echo htmlspecialchars(strtoupper($eventDetails['event_location'])); ?>" readonly>
-          <input type="time" name="event_time" placeholder="Event Time" value="<?php echo htmlspecialchars(strtoupper($eventDetails['event_time'])); ?>" readonly>
-          <input type="date" name="event_date" placeholder="Event Date" value="<?php echo htmlspecialchars(strtoupper($eventDetails['event_date'])); ?>" readonly>
-          <input type="text" name="event_course" placeholder="Course/Department" value="<?php echo htmlspecialchars(strtoupper($eventDetails['event_course'])); ?>" readonly>
-          <input type="text" name="organization_type" placeholder="Organization Type" value="<?php echo strtoupper($organizationType ?? ''); ?>" readonly>
-        </div>
-      </div>
+      <input type="hidden" id="current_role" value="OSA">
 
-      <div class="flex-container">
-        <div id="docList" class="doc-list"></div>
-        <div id="docPreview" class="preview-container">
-          <p style="color: #888;">Select a document to preview it here.</p>
-        </div>
-      </div>
-
-      <button type="button" id="submitBtn">Submit Documents</button>
-      <button type="button" id="rejectBtn" style="background:#e74c3c;color:#fff;">Reject Documents</button>
-
-      <div class="select-approvers-wrapper">
-        <h4 style="font-family:Poppins;margin:10px 0;">Select Signatories</h4>
-        <div class="select-approvers">
-          <!-- president -->
-          <div class="signatory-box">
-            <div class="signature-placeholder" id="president-signature-box" onclick="<?= $presidentSigned ? '' : "triggerFileInput('president')" ?>">
-              <?php if ($presidentSigned && !empty($presidentSignedSignature)): ?>
-                <!-- SHOW SIGNED PRESIDENT SIGNATURE -->
-                <img src="<?= htmlspecialchars($presidentSignedSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
-
-                <?php elseif ($officerRole === 'President' && !empty($signaturePath)): ?>
-                <img src="<?= htmlspecialchars($signaturePath) ?>" style="width:100px; height:auto; display:block; margin:auto;">
-
-                <?php else: ?>
-                  <span>+</span>
-                <?php endif; ?>
-                <input type="file" id="president_file" accept="image/*" style="display:none" onchange="previewSignature(this, 'president')" <?= $presidentSigned ? 'disabled' : '' ?>>
-            </div>
-
-            <div class="input-group">
-              <input list="presidentList" id="president_name" name="president_name" placeholder="Select President"autocomplete="off" value="<?= $presidentSigned ? htmlspecialchars($presidentSignedName) : ($officerRole === 'President' ? htmlspecialchars($officerName) : '') ?>" <?= ($presidentSigned || $officerRole === 'President') ? 'readonly' : '' ?>>
-              <input type="hidden" id="president_id"name="president_id" value="<? $presidentSigned ? htmlspecialchars($presidentSignedID) : ($officerRole === 'President' ? htmlspecialchars($student_id) : '') ?>">
-              <datalist id="presidentList"></datalist>
-            </div>
-          </div>
-          <!-- adviser -->
-          <div class="signatory-box">
-            <div class="signature-placeholder" id="adviser-signature-box" onclick="<?= $adviserSigned ? '' : "triggerFileInput('adviser')" ?>">
-              <?php if ($adviserSigned && !empty($adviserSignedSignature)): ?>
-                <!-- SHOW SIGNED ADVISER SIGNATURE -->
-                <img src="<?= htmlspecialchars($adviserSignedSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
-            
-                <?php elseif (!empty($adviserSignature)): ?>
-                <img src="<?= htmlspecialchars($adviserSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
-
-                <?php else: ?>
-                  <span>+</span>
-                <?php endif; ?>
-                <input type="file" id="adviser_file" accept="image/*" style="display:none"onchange="previewSignature(this, 'adviser')" <?= $adviserSigned ? 'disabled' : '' ?>>
-            </div>
-
-            <div class="input-group">
-              <input list="adviserList" id="adviser_name" name="adviser_name" placeholder="Select Adviser"autocomplete="off" value="<?= $adviserSigned ? htmlspecialchars($adviserSignedName) : htmlspecialchars($adviser['name'] ?? '') ?>" readonly>
-              <input type="hidden" id="adviser_id" name="adviser_id" value="<?= $adviserSigned ? htmlspecialchars($adviserSignedID) : htmlspecialchars($adviser['id_no'] ?? '') ?>">
-              <datalist id="adviserList"></datalist>
-            </div>
-          </div>
-            <!-- program head -->
-          <div class="signatory-box">
-            <div class="signature-placeholder" id="programhead-signature-box" onclick="<?= $programheadSigned ? '' : "triggerFileInput('programhead')" ?>">
-              <?php if ($programheadSigned && !empty($programheadSignedSignature)): ?>
-                <!-- SHOW SIGNED ADVISER SIGNATURE -->
-                <img src="<?= htmlspecialchars($programheadSignedSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
-            
-                <?php elseif (!empty($programheadSignature)): ?>
-                <img src="<?= htmlspecialchars($programheadSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
-
-                <?php else: ?>
-                  <span>+</span>
-                <?php endif; ?>
-                <input type="file" id="programhead_file" accept="image/*" style="display:none"onchange="previewSignature(this, 'programhead')" <?= $programheadSigned ? 'disabled' : '' ?>>
-            </div>
-
-            <div class="input-group">
-              <input list="programheadList" id="programhead_name" name="programhead_name" placeholder="Select Program Head"autocomplete="off" value="<?= $programheadSigned ? htmlspecialchars($programheadSignedName) : htmlspecialchars($programhead['name'] ?? '') ?>" readonly>
-              <input type="hidden" id="programhead_id" name="programhead_id" value="<?= $programheadSigned ? htmlspecialchars($programheadSignedID) : htmlspecialchars($programhead['id_no'] ?? '') ?>">
-              <datalist id="programheadList"></datalist>
-            </div>
-          </div>
-          <!-- dean -->
-          <div class="signatory-box">
-            <div class="signature-placeholder" id="dean-signature-box" onclick="<?= $deanSigned ? '' : "triggerFileInput('dean')" ?>">
-              <?php if ($deanSigned && !empty($deanSignedSignature)): ?>
-                <!-- SHOW SIGNED ADVISER SIGNATURE -->
-                <img src="<?= htmlspecialchars($deanSignedSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
-            
-                <?php elseif (!empty($deanSignature)): ?>
-                <img src="<?= htmlspecialchars($deanSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
-
-                <?php else: ?>
-                  <span>+</span>
-                <?php endif; ?>
-                <input type="file" id="dean_file" accept="image/*" style="display:none"onchange="previewSignature(this, 'dean')" <?= $deanSigned ? 'disabled' : '' ?>>
-            </div>
-
-            <div class="input-group">
-              <input list="deanList" id="dean_name" name="dean_name" placeholder="Select Dean"autocomplete="off" value="<?= $deanSigned ? htmlspecialchars($deanSignedName) : htmlspecialchars($dean['name'] ?? '') ?>" readonly>
-              <input type="hidden" id="dean_id" name="dean_id" value="<?= $deanSigned ? htmlspecialchars($deanSignedID) : htmlspecialchars($dean['id_no'] ?? '') ?>">
-              <datalist id="deanList"></datalist>
-            </div>
-          </div>
-          <!-- osa -->
-          <div class="signatory-box">
-            <div class="signature-placeholder" id="osa-signature-box" onclick="triggerFileInput('osa')">
-              <?php if (!empty($osa['signature'])): ?>
-                <img src="<?php echo htmlspecialchars($osa['signature']); ?>" alt="Signature" style="width:100px; height:auto; display:block; margin:auto;">
-              <?php else: ?>
-                <span>+</span>
-              <?php endif; ?>
-              <input type="file" id="osa_file" accept="image/*" style="display:none" onchange="previewSignature(this, 'osa')">
-            </div>
-            <div class="input-group">
-              <input type="text" 
-                    id="osa_name" 
-                    name="osa_name" 
-                    placeholder="Select Osa" 
-                    autocomplete="off"
-                    value="<?php echo htmlspecialchars($osa['name']); ?>"
-                    readonly>
-              <input type="hidden" 
-                    id="osa_id" 
-                    name="osa_id" 
-                    value="<?php echo htmlspecialchars($osa['id_no']); ?>">
-              <h4>OSA</h4>
-              <datalist id="osaList"></datalist>
-            </div>
-          </div>
-          <!-- vp -->
-          <div class="signatory-box">
-            <div class="signature-placeholder" onclick="triggerFileInput('vp')">
-              <span>+</span>
-              <input type="file" id="vp_file" accept="image/*" style="display:none" onchange="previewSignature(this, 'vp')">
-            </div>
-            <div class="input-group">
-              <input  type="text" id="vp_name" name="vp_name" value="<?php echo htmlspecialchars($vp['name']); ?>" readonly>
-              <input type="hidden" id="vp_id" name="vp_id" value="<?php echo htmlspecialchars($vp['id_no']); ?>">
-              <h4>VP Director</h4>
-              <datalist id="vpList"></datalist>
-            </div>
+      <form method="POST" action="submit_event_drawn_documents.php" enctype="multipart/form-data" id="adviserForm">
+        <input type="hidden" name="request_id" id="form_request_id" value="<?php echo htmlspecialchars($request_id); ?>">
+        <input type="hidden" name="event_id" value="<?php echo htmlspecialchars($event_id); ?>">
+        <input type="hidden" name="role" value="OSA">
+        <div class="org-details-flex">
+          <div class="org-fields">
+            <input type="text" name="event_name" placeholder="Event Name" value="<?php echo htmlspecialchars(strtoupper($eventDetails['event_name'])); ?>" readonly>
+            <input type="text" name="event_location" placeholder="Event Location" value="<?php echo htmlspecialchars(strtoupper($eventDetails['event_location'])); ?>" readonly>
+            <input type="time" name="event_time" placeholder="Event Time" value="<?php echo htmlspecialchars(strtoupper($eventDetails['event_time'])); ?>" readonly>
+            <input type="date" name="event_date" placeholder="Event Date" value="<?php echo htmlspecialchars(strtoupper($eventDetails['event_date'])); ?>" readonly>
+            <input type="text" name="event_course" placeholder="Course/Department" value="<?php echo htmlspecialchars(strtoupper($eventDetails['event_course'])); ?>" readonly>
+            <input type="text" name="organization_type" placeholder="Organization Type" value="<?php echo strtoupper($organizationType ?? ''); ?>" readonly>
           </div>
         </div>
+
+        <div class="flex-container">
+          <div id="docList" class="doc-list"></div>
+          <div id="docPreview" class="preview-container">
+            <p style="color: #888;">Select a document to preview it here.</p>
+          </div>
+        </div>
+
+        <div class="select-approvers-wrapper">
+          <h4 style="font-family:Poppins;margin:10px 0;">Select Signatories</h4>
+          <div class="select-approvers">
+            <!-- president -->
+            <div class="signatory-card">
+              <div class="signature-placeholder" id="president-signature-box" onclick="<?= $presidentSigned ? '' : "triggerFileInput('president')" ?>">
+                <?php if ($presidentSigned && !empty($presidentSignedSignature)): ?>
+                  <!-- SHOW SIGNED PRESIDENT SIGNATURE -->
+                  <img src="<?= htmlspecialchars($presidentSignedSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
+
+                  <?php elseif ($officerRole === 'President' && !empty($signaturePath)): ?>
+                  <img src="<?= htmlspecialchars($signaturePath) ?>" style="width:100px; height:auto; display:block; margin:auto;">
+
+                  <?php else: ?>
+                    <span>Pending</span>
+                  <?php endif; ?>
+                  <input type="file" id="president_file" accept="image/*" style="display:none" onchange="previewSignature(this, 'president')" <?= $presidentSigned ? 'disabled' : '' ?>>
+              </div>
+
+              <div class="sign-info" style="width:100%;">
+                <input list="presidentList" id="president_name" name="president_name" placeholder="Select President"autocomplete="off" value="<?= $presidentSigned ? htmlspecialchars($presidentSignedName) : ($officerRole === 'President' ? htmlspecialchars($officerName) : '') ?>" <?= ($presidentSigned || $officerRole === 'President') ? 'readonly' : '' ?>>
+                <input type="hidden" id="president_id"name="president_id" value="<? $presidentSigned ? htmlspecialchars($presidentSignedID) : ($officerRole === 'President' ? htmlspecialchars($student_id) : '') ?>">
+                <datalist id="presidentList"></datalist>
+                <div class="role">President</div>
+              </div>
+            </div>
+            <!-- adviser -->
+            <div class="signatory-card">
+              <div class="signature-placeholder" id="adviser-signature-box" onclick="<?= $adviserSigned ? '' : "triggerFileInput('adviser')" ?>">
+                <?php if ($adviserSigned && !empty($adviserSignedSignature)): ?>
+                  <!-- SHOW SIGNED ADVISER SIGNATURE -->
+                  <img src="<?= htmlspecialchars($adviserSignedSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
+              
+                  <?php elseif (!empty($adviserSignature)): ?>
+                  <img src="<?= htmlspecialchars($adviserSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
+
+                  <?php else: ?>
+                    <span>Pending</span>
+                  <?php endif; ?>
+                  <input type="file" id="adviser_file" accept="image/*" style="display:none"onchange="previewSignature(this, 'adviser')" <?= $adviserSigned ? 'disabled' : '' ?>>
+              </div>
+
+              <div class="sign-info" style="width:100%;">
+                <input list="adviserList" id="adviser_name" name="adviser_name" placeholder="Select Adviser"autocomplete="off" value="<?= $adviserSigned ? htmlspecialchars($adviserSignedName) : htmlspecialchars($adviser['name'] ?? '') ?>" readonly>
+                <input type="hidden" id="adviser_id" name="adviser_id" value="<?= $adviserSigned ? htmlspecialchars($adviserSignedID) : htmlspecialchars($adviser['id_no'] ?? '') ?>">
+                <datalist id="adviserList"></datalist>
+                <div class="role">Adviser</div>
+              </div>
+            </div>
+              <!-- program head -->
+            <div class="signatory-card">
+              <div class="signature-placeholder" id="programhead-signature-box" onclick="<?= $programheadSigned ? '' : "triggerFileInput('programhead')" ?>">
+                <?php if ($programheadSigned && !empty($programheadSignedSignature)): ?>
+                  <!-- SHOW SIGNED ADVISER SIGNATURE -->
+                  <img src="<?= htmlspecialchars($programheadSignedSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
+              
+                  <?php elseif (!empty($programheadSignature)): ?>
+                  <img src="<?= htmlspecialchars($programheadSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
+
+                  <?php else: ?>
+                    <span>Pending</span>
+                  <?php endif; ?>
+                  <input type="file" id="programhead_file" accept="image/*" style="display:none"onchange="previewSignature(this, 'programhead')" <?= $programheadSigned ? 'disabled' : '' ?>>
+              </div>
+
+              <div class="sign-info" style="width:100%;">
+                <input list="programheadList" id="programhead_name" name="programhead_name" placeholder="Select Program Head"autocomplete="off" value="<?= $programheadSigned ? htmlspecialchars($programheadSignedName) : htmlspecialchars($programhead['name'] ?? '') ?>" readonly>
+                <input type="hidden" id="programhead_id" name="programhead_id" value="<?= $programheadSigned ? htmlspecialchars($programheadSignedID) : htmlspecialchars($programhead['id_no'] ?? '') ?>">
+                <datalist id="programheadList"></datalist>
+                <div class="role">Program Head</div>
+              </div>
+            </div>
+            <!-- dean -->
+            <div class="signatory-card">
+              <div class="signature-placeholder" id="dean-signature-box" onclick="<?= $deanSigned ? '' : "triggerFileInput('dean')" ?>">
+                <?php if ($deanSigned && !empty($deanSignedSignature)): ?>
+                  <!-- SHOW SIGNED ADVISER SIGNATURE -->
+                  <img src="<?= htmlspecialchars($deanSignedSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
+              
+                  <?php elseif (!empty($deanSignature)): ?>
+                  <img src="<?= htmlspecialchars($deanSignature) ?>" style="width:100px; height:auto; display:block; margin:auto;">
+
+                  <?php else: ?>
+                    <span>Pending</span>
+                  <?php endif; ?>
+                  <input type="file" id="dean_file" accept="image/*" style="display:none"onchange="previewSignature(this, 'dean')" <?= $deanSigned ? 'disabled' : '' ?>>
+              </div>
+
+              <div class="sign-info" style="width:100%;">
+                <input list="deanList" id="dean_name" name="dean_name" placeholder="Select Dean"autocomplete="off" value="<?= $deanSigned ? htmlspecialchars($deanSignedName) : htmlspecialchars($dean['name'] ?? '') ?>" readonly>
+                <input type="hidden" id="dean_id" name="dean_id" value="<?= $deanSigned ? htmlspecialchars($deanSignedID) : htmlspecialchars($dean['id_no'] ?? '') ?>">
+                <datalist id="deanList"></datalist>
+                <div class="role">Dean</div>
+              </div>
+            </div>
+            <!-- osa -->
+            <div class="signatory-card">
+              <div class="signature-placeholder" id="osa-signature-box" onclick="triggerFileInput('osa')">
+                <?php if (!empty($osa['signature'])): ?>
+                  <img src="<?php echo htmlspecialchars($osa['signature']); ?>" alt="Signature" style="width:100px; height:auto; display:block; margin:auto;">
+                <?php else: ?>
+                  <span>Pending</span>
+                <?php endif; ?>
+                <input type="file" id="osa_file" accept="image/*" style="display:none" onchange="previewSignature(this, 'osa')">
+              </div>
+              <div class="sign-info" style="width:100%;">
+                <input type="text" 
+                      id="osa_name" 
+                      name="osa_name" 
+                      placeholder="Select Osa" 
+                      autocomplete="off"
+                      value="<?php echo htmlspecialchars($osa['name']); ?>"
+                      readonly>
+                <input type="hidden" 
+                      id="osa_id" 
+                      name="osa_id" 
+                      value="<?php echo htmlspecialchars($osa['id_no']); ?>">
+                <datalist id="osaList"></datalist>
+                <div class="role">OSA</div>
+              </div>
+            </div>
+            <!-- vp -->
+            <div class="signatory-card">
+              <div class="signature-placeholder" onclick="triggerFileInput('vp')">
+                <span>Pending</span>
+                <input type="file" id="vp_file" accept="image/*" style="display:none" onchange="previewSignature(this, 'vp')">
+              </div>
+              <div class="sign-info" style="width:100%;">
+                <input  type="text" id="vp_name" name="vp_name" value="<?php echo htmlspecialchars($vp['name']); ?>" readonly>
+                <input type="hidden" id="vp_id" name="vp_id" value="<?php echo htmlspecialchars($vp['id_no']); ?>">
+                <datalist id="vpList"></datalist>
+                <div class="role">Branch Director</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="button-row">
+          <button type="button" id="submitBtn" class="btn primary">Approve & Sign Documents</button>
+          <button type="button" id="rejectBtn" class="btn primary" style="background:#e74c3c;color:#fff;">Reject Documents</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="rejectModal" class="reject-modal">
+    <div class="reject-modal-content" style="max-width:500px;">
+      <h2>Reject Event Documents</h2>
+      <p>Please provide comments or suggestions for revision.</p>
+
+      <textarea
+        id="rejectComment"
+        rows="6"
+        placeholder="Enter comments and suggestions..."
+        style="width:100%; padding:10px; font-family:Poppins;"
+      ></textarea>
+
+      <div style="margin-top:15px; text-align:right;">
+        <button type="button" onclick="closeRejectModal()">Cancel</button>
+        <button type="button" onclick="submitRejection()" style="background:#e74c3c;color:#fff;">
+          Submit Rejection
+        </button>
       </div>
-    </form>
+    </div>
   </div>
 
   <div id="signatureModal" class="modal">
@@ -458,6 +511,10 @@ if (!empty($organizationType)) {
       <label>Or upload signature image:</label>
       <input type="file" id="uploadSignature" accept="image/*">
     </div>
+  </div>
+
+  <div id="successToast" class="toast">
+    <span id="toastMessage"></span>
   </div>
 
   <script>
@@ -651,7 +708,7 @@ if (!empty($organizationType)) {
             alert("Submission failed: " + err.message);
           }
       }
-      alert("All documents submitted!");
+      showSuccessToast(`Head OSA approval completed successfully.`);
       loadDocs();
       document.getElementById("docPreview").innerHTML = "";
     });
@@ -712,24 +769,64 @@ if (!empty($organizationType)) {
       });
     }
 
-    document.getElementById("rejectBtn").addEventListener("click", function() {
-      if (!confirm("Are you sure you want to reject and reset all submitted documents for this request?")) return;
+    document.getElementById("rejectBtn").addEventListener("click", () => {
+      document.getElementById("rejectModal").style.display = "flex";
+    });
+
+    function closeRejectModal() {
+      document.getElementById("rejectModal").style.display = "none";
+      document.getElementById("rejectComment").value = "";
+    }
+
+    function submitRejection() {
+      const comment = document.getElementById("rejectComment").value.trim();
       const requestId = document.getElementById("request_id").value;
-      fetch("reject_documents.php", {
+      const eventId = document.getElementById("event_id").value;
+      const role = document.getElementById("current_role").value;
+
+      if (!comment) {
+        alert("Please enter comments or suggestions.");
+        return;
+      }
+
+      fetch("/officerDashboardCopy/create_event/reject_events_documents.php", {
         method: "POST",
-        body: new URLSearchParams({ request_id: requestId })
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          request_id: requestId,
+          event_id: eventId,
+          role: role,
+          comment: comment
+        })
       })
-        .then(res => res.text())
-        .then(msg => {
-          alert(msg);
+      .then(res => res.json())
+      .then(result => {
+        if (result.status === "success") {
+          showSuccessToast("Documents rejected successfully.");
+          closeRejectModal();
           loadDocs();
           document.getElementById("docPreview").innerHTML = "";
-        })
-        .catch(err => {
-          alert("Failed to reject documents.");
-          console.error(err);
-        });
-    });
+        } else {
+          alert(result.message || "Rejection failed.");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Failed to submit rejection.");
+      });
+    }
+
+    function showSuccessToast(message) {
+      const toast = document.getElementById("successToast");
+      const text = document.getElementById("toastMessage");
+
+      text.textContent = message;
+      toast.classList.add("show");
+
+      setTimeout(() => {
+        toast.classList.remove("show");
+      }, 3000);
+    }
   </script>
 
   <script>
